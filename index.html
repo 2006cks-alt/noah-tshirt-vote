@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>노아의 짱큰배 티셔츠 투표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f1f5f7; --card:#ffffff; --ink:#12232d; --sub:#5d7078;
+    --accent:#0f7d9e; --accent-ink:#ffffff; --line:#dde6ea; --line-soft:#e9eff1;
+    --success:#1f8f5f; --danger:#c94a3d;
+    --font-head:'Gothic A1','Malgun Gothic',sans-serif;
+    --font-body:'IBM Plex Sans KR',-apple-system,'Malgun Gothic',sans-serif;
+    --container:1080px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0c1417; --card:#141f25; --ink:#eaf1f4; --sub:#8ea3ab;
+      --accent:#4bb8d9; --accent-ink:#052129; --line:#223138; --line-soft:#1a262c;
+      --success:#3cc98a; --danger:#e2685a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c1417; --card:#141f25; --ink:#eaf1f4; --sub:#8ea3ab;
+    --accent:#4bb8d9; --accent-ink:#052129; --line:#223138; --line-soft:#1a262c;
+    --success:#3cc98a; --danger:#e2685a;
+  }
+  *{box-sizing:border-box;}
+  html{ color-scheme: light dark; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font-body); font-size:15px; line-height:1.5;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  header{
+    border-bottom:1px solid var(--line); background:var(--card);
+  }
+  .topbar-inner{
+    max-width:var(--container); margin:0 auto; padding:18px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .boat-icon{ width:24px; height:24px; flex:none; color:var(--accent); }
+  header h1{margin:0; font-family:var(--font-head); font-weight:800; font-size:1.22rem; letter-spacing:-.01em; white-space:nowrap;}
+  .stats-chip{
+    display:flex; gap:10px; align-items:center; padding:7px 14px; border-radius:999px;
+    background:var(--line-soft); border:1px solid var(--line); color:var(--sub);
+    font-size:.78rem; font-weight:500; font-variant-numeric:tabular-nums; flex:none;
+  }
+  .stats-chip b{ color:var(--ink); font-weight:700; }
+  .stats-chip .dot{ width:3px; height:3px; border-radius:50%; background:var(--sub); flex:none; }
+  .topbar-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .deadline-chip{
+    display:flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px;
+    background:var(--accent); color:var(--accent-ink); font-size:.78rem; font-weight:700;
+    flex:none; font-variant-numeric:tabular-nums;
+  }
+  .deadline-chip .ddate{ font-weight:500; opacity:.85; }
+  .deadline-chip.ended{ background:var(--line-soft); color:var(--sub); border:1px solid var(--line); }
+
+  .section-head{ max-width:var(--container); margin:0 auto; padding:28px 20px 0; }
+  .eyebrow{
+    display:block; font-family:var(--font-head); font-weight:700; font-size:.74rem;
+    letter-spacing:.06em; color:var(--accent); margin-bottom:6px;
+  }
+  .subhead{margin:0; color:var(--sub); font-size:.88rem;}
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:20px; padding:16px 20px 20px; max-width:var(--container); margin:0 auto;
+  }
+  .card{
+    position:relative; background:var(--card); border:1px solid var(--line); border-radius:20px;
+    padding:14px; display:flex; flex-direction:column; gap:12px;
+    box-shadow:0 1px 2px rgba(15,35,45,.04);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .card:hover{ transform:translateY(-2px); box-shadow:0 14px 28px -18px rgba(15,40,50,.45); }
+  .card .mockup{ cursor:pointer; }
+  .rank-badge{
+    position:absolute; top:22px; left:22px; z-index:2;
+    background:var(--accent); color:var(--accent-ink); font-family:var(--font-head);
+    font-weight:800; font-size:.72rem; padding:4px 10px; border-radius:999px;
+    box-shadow:0 4px 10px -4px rgba(0,0,0,.4);
+  }
+
+  .mockup{
+    position:relative; width:100%; aspect-ratio:3/4;
+    border-radius:14px; overflow:hidden; background:var(--line-soft);
+  }
+  .mockup img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .empty-note{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:.78rem; text-align:center; padding:8px; }
+
+  .add-card{
+    border:1.5px dashed var(--line); border-radius:20px; padding:14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    cursor:pointer; min-height:200px; color:var(--sub); background:transparent;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .add-card:hover{ border-color:var(--accent); color:var(--accent); }
+  .add-card .plus-icon{
+    width:36px; height:36px; border-radius:50%; border:1.5px solid currentColor;
+    display:flex; align-items:center; justify-content:center; font-size:1.4rem; line-height:1;
+  }
+  .add-card .add-label{ font-weight:600; font-size:.92rem; text-align:center; }
+
+  .name{font-weight:600; font-size:.98rem;}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .votes{color:var(--sub); font-size:.8rem; font-variant-numeric:tabular-nums;}
+  .btns{display:flex; gap:8px;}
+  button{border:none; border-radius:999px; padding:10px 14px; font-size:.84rem; cursor:pointer; font-weight:600; font-family:var(--font-body);}
+  button:disabled{opacity:.45; cursor:default;}
+  .vote-btn{background:var(--accent); color:var(--accent-ink); flex:1;}
+  .vote-btn.voted{background:var(--success);}
+  .view-btn{background:transparent; color:var(--ink); border:1px solid var(--line); flex:1;}
+  .bar{height:4px; border-radius:999px; background:var(--line); overflow:hidden;}
+  .bar-fill{height:100%; background:var(--accent); border-radius:999px; transition:width .35s ease;}
+
+  #gate, #modal, #add-modal, #admin-pin-gate{
+    position:fixed; inset:0; background:rgba(10,16,18,.55); backdrop-filter:blur(2px); display:none;
+    align-items:center; justify-content:center; z-index:60; padding:20px;
+  }
+  #gate.open, #modal.open, #add-modal.open, #admin-pin-gate.open{display:flex;}
+  .sheet{
+    background:var(--card); border-radius:22px; width:min(440px,100%);
+    padding:24px; position:relative; max-height:90vh; overflow-y:auto;
+    border:1px solid var(--line);
+  }
+  .sheet h2{margin:0 0 4px; font-family:var(--font-head); font-weight:800; font-size:1.15rem;}
+  .sheet p.sub{margin:0 0 16px; color:var(--sub); font-size:.84rem;}
+  label{display:block; font-size:.8rem; color:var(--sub); margin:14px 0 6px; font-weight:500;}
+  input[type=text],input[type=password]{
+    width:100%; padding:11px 13px; border-radius:12px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:.95rem; font-family:inherit;
+  }
+  input[type=file]{ width:100%; font-size:.85rem; color:var(--ink); }
+  .primary-btn{width:100%; background:var(--accent); color:var(--accent-ink); padding:13px; margin-top:20px; border-radius:999px; font-size:.95rem;}
+  .msg{font-size:.8rem; margin-top:8px; min-height:16px;}
+  .msg.err{color:var(--danger);}
+  .msg.ok{color:var(--success);}
+
+  #close-modal, #close-add-modal{position:absolute; top:12px; right:12px; background:var(--line-soft); color:var(--ink); width:32px; height:32px; border-radius:50%; padding:0; font-size:1rem;}
+  #modal .sheet, #add-modal .sheet{width:min(440px,100%);}
+  .tabs{display:flex; gap:6px; margin:12px 0 12px; justify-content:center;}
+  .tab{padding:7px 18px; border-radius:999px; background:var(--bg); border:1px solid var(--line); color:var(--ink); font-size:.82rem; font-weight:500;}
+  .tab.active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+
+  .slot-row{ display:flex; gap:12px; margin-top:6px; }
+  .slot{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .slot-thumb{
+    position:relative; width:100%; aspect-ratio:3/4; border-radius:14px;
+    border:1.5px dashed var(--line); background:var(--line-soft); overflow:hidden; cursor:pointer;
+  }
+  .slot-thumb img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .slot-thumb.filled{ border-style:solid; border-color:var(--accent); }
+  .slot-placeholder{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:1.4rem; }
+  .slot-label{ font-size:.8rem; color:var(--sub); font-weight:500; }
+
+  .picker-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; max-height:52vh; overflow-y:auto; margin-top:10px; }
+  .picker-item{ display:flex; flex-direction:column; gap:4px; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; }
+  .picker-item .mockup{ border:2px solid var(--line); }
+  .picker-item:hover .mockup{ border-color:var(--accent); }
+  .picker-item .picker-label{ font-size:.7rem; color:var(--sub); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .picker-empty{ color:var(--sub); font-size:.85rem; padding:20px 0; text-align:center; }
+
+  footer{
+    max-width:var(--container); margin:0 auto; text-align:center; color:var(--sub);
+    font-size:.76rem; padding:22px 20px 54px; border-top:1px solid var(--line); margin-top:14px;
+  }
+
+  #admin-panel{display:none; max-width:640px; margin:0 auto; padding:0 20px 60px;}
+  #admin-panel.open{display:block;}
+  .admin-topbar{ padding:22px 0 18px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+  .admin-topbar .eyebrow{ margin-bottom:2px; }
+  .admin-topbar h1{margin:0; font-family:var(--font-head); font-weight:800; font-size:1.25rem;}
+  .admin-card{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:16px;}
+  .admin-card h3{margin:0 0 4px; font-family:var(--font-head); font-weight:700; font-size:1rem;}
+  table{width:100%; border-collapse:collapse; font-size:.85rem;}
+  th,td{text-align:left; padding:8px 4px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .small-btn{padding:6px 12px; font-size:.78rem; background:var(--line-soft); color:var(--ink); border-radius:999px;}
+  .danger{background:var(--danger); color:#fff;}
+  .admin-thumb{ width:52px; flex:none; }
+  .admin-thumb.mockup{ border-radius:8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topbar-inner">
+    <div class="brand">
+      <svg class="boat-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 30 L24 8 L40 30" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 30 H43 L37 40 H11 Z" fill="currentColor" opacity=".18" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M24 8 V30" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <h1>노아의 짱큰배 티셔츠 투표</h1>
+    </div>
+    <div class="topbar-right">
+      <div class="deadline-chip" id="deadline-chip"></div>
+      <div class="stats-chip" id="stats-chip"></div>
+    </div>
+  </div>
+</header>
+
+<div class="section-head">
+  <span class="eyebrow">투표 후보</span>
+  <p class="subhead">마음에 드는 디자인에 투표하거나, 목록 끝의 '+' 카드로 나만의 조합을 추가해보세요</p>
+</div>
+
+<div class="grid" id="grid"></div>
+<footer>투표는 언제든 바꿀 수 있어요 · 어떤 디자인을 골랐는지는 본인만 확인할 수 있어요 (완전 비공개)</footer>
+
+<div id="gate">
+  <div class="sheet">
+    <h2>시작 전 확인</h2>
+    <p class="sub">학번과 이름을 입력해주세요. 중복 참여 방지용으로만 쓰이고, 어떤 디자인을 선택했는지는 본인 외에는 아무도(관리자 포함) 볼 수 없이 완전히 비공개로 처리돼요.</p>
+    <label>학번</label>
+    <input type="text" id="gate-sid" inputmode="numeric" placeholder="예: 20231234">
+    <label>이름</label>
+    <input type="text" id="gate-name" placeholder="홍길동">
+    <button class="primary-btn" id="gate-submit">시작하기</button>
+    <div class="msg err" id="gate-msg"></div>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="sheet">
+    <button id="close-modal">✕</button>
+    <h2 id="modal-name"></h2>
+    <div class="tabs">
+      <button class="tab active" id="tab-front">앞면</button>
+      <button class="tab" id="tab-back">뒷면</button>
+    </div>
+    <div id="modal-thumb"></div>
+    <button class="primary-btn vote-btn" id="modal-vote">👍 이 디자인에 투표</button>
+    <div class="msg" id="modal-msg"></div>
+  </div>
+</div>
+
+<div id="add-modal">
+  <div class="sheet">
+    <button id="close-add-modal">✕</button>
+    <div id="add-main-view">
+      <h2>나만의 조합 만들기</h2>
+      <p class="sub">기존 목업 사진 중에서 앞면·뒷면을 골라 새 조합을 만들어보세요</p>
+      <div class="slot-row">
+        <div class="slot">
+          <div class="slot-thumb" id="slot-front-thumb"><div class="slot-placeholder">+</div></div>
+          <span class="slot-label">앞면</span>
+          <button type="button" class="small-btn" id="pick-front-btn">선택하기</button>
+        </div>
+        <div class="slot">
+          <div class="slot-thumb" id="slot-back-thumb"><div class="slot-placeholder">+</div></div>
+          <span class="slot-label">뒷면</span>
+          <button type="button" class="small-btn" id="pick-back-btn">선택하기</button>
+        </div>
+      </div>
+      <label>이름</label>
+      <input type="text" id="add-name" placeholder="예: 우리팀 티셔츠">
+      <button class="primary-btn" id="add-submit" disabled>추가하기</button>
+      <div class="msg" id="add-msg"></div>
+    </div>
+    <div id="add-picker-view" hidden>
+      <button type="button" class="small-btn" id="picker-back">← 뒤로</button>
+      <h2 id="picker-title">사진 선택</h2>
+      <div class="picker-grid" id="picker-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="admin-pin-gate">
+  <div class="sheet">
+    <h2>관리자 인증</h2>
+    <label>PIN</label>
+    <input type="password" id="pin-input" inputmode="numeric">
+    <button class="primary-btn" id="pin-submit">확인</button>
+    <div class="msg err" id="pin-msg"></div>
+  </div>
+</div>
+
+<div id="admin-panel">
+  <div class="admin-topbar">
+    <span class="eyebrow">관리자</span>
+    <h1>노아의 짱큰배 티셔츠 투표</h1>
+  </div>
+
+  <div class="admin-card">
+    <h3>디자인 추가</h3>
+    <label>이름</label>
+    <input type="text" id="new-team-name" placeholder="예: 하나되는배">
+    <label>앞면 이미지</label>
+    <input type="file" id="new-front-file" accept="image/*">
+    <label>뒷면 이미지 (선택)</label>
+    <input type="file" id="new-back-file" accept="image/*">
+    <button class="primary-btn" id="add-team-btn">추가하기</button>
+    <div class="msg" id="add-team-msg"></div>
+  </div>
+
+  <div class="admin-card">
+    <h3>등록된 디자인</h3>
+    <table id="admin-designs-table"><tbody></tbody></table>
+  </div>
+
+  <div class="admin-card" id="voters-card">
+    <h3>참여 명단 <span style="font-weight:400;color:var(--sub);font-size:.78rem;">(참여 여부만, 선택 내용은 비공개)</span></h3>
+    <div id="voters-permission-msg" class="msg"></div>
+    <table id="voters-table"><tbody></tbody></table>
+  </div>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
