@@ -14,11 +14,17 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // attendance record (student id + name + timestamp only — never which
-    // design they picked)
+    // attendance record (student id + name + password hash + timestamp —
+    // never which design they picked). Anyone can register a fresh student
+    // id, but an EXISTING one can only be overwritten by a write that
+    // already carries the same passwordHash it currently has — so nobody
+    // can take over someone else's row (or reset their password) without
+    // already knowing their password, even by talking to Firestore directly.
     match /voters/{sid} {
       allow read: if true;
-      allow write: if true;
+      allow create: if request.resource.data.passwordHash is string;
+      allow update: if request.resource.data.passwordHash == resource.data.passwordHash;
+      allow delete: if false;
     }
 
     // each viewer's OWN vote choice — only that signed-in-anonymously

@@ -220,11 +220,13 @@
 <div id="gate">
   <div class="sheet">
     <h2>시작 전 확인</h2>
-    <p class="sub">학번과 이름을 입력해주세요. 중복 참여 방지용으로만 쓰이고, 어떤 디자인을 선택했는지는 본인 외에는 아무도(관리자 포함) 볼 수 없이 완전히 비공개로 처리돼요.</p>
+    <p class="sub">학번, 이름, 비밀번호를 입력해주세요. 처음 입력하는 비밀번호가 앞으로 본인 확인용으로 쓰여서, 다른 사람이 내 학번으로 들어와 나 대신 활동하는 걸 막아줘요. 어떤 디자인을 선택했는지는 본인 외에는 아무도(관리자 포함) 볼 수 없이 완전히 비공개로 처리돼요.</p>
     <label>학번</label>
     <input type="text" id="gate-sid" inputmode="numeric" placeholder="예: 20231234">
     <label>이름</label>
     <input type="text" id="gate-name" placeholder="홍길동">
+    <label>비밀번호</label>
+    <input type="password" id="gate-pw" placeholder="처음이면 새로 만들어주세요">
     <button class="primary-btn" id="gate-submit">시작하기</button>
     <div class="msg err" id="gate-msg"></div>
   </div>

@@ -202,24 +202,52 @@ function setVoterInfo(info){
 function showGate(){ document.getElementById('gate').classList.add('open'); }
 function hideGate(){ document.getElementById('gate').classList.remove('open'); }
 
-document.getElementById('gate-submit').onclick = ()=>{
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+document.getElementById('gate-submit').onclick = async ()=>{
+  const btn = document.getElementById('gate-submit');
   const sid = document.getElementById('gate-sid').value.trim();
   const name = document.getElementById('gate-name').value.trim();
+  const pw = document.getElementById('gate-pw').value;
   const msg = document.getElementById('gate-msg');
-  if(!sid || !name){ msg.textContent='학번과 이름을 모두 입력해주세요.'; return; }
-  if(sid===ADMIN_ID && name===ADMIN_PW){
+  if(!sid || !name || !pw){ msg.textContent='학번, 이름, 비밀번호를 모두 입력해주세요.'; return; }
+
+  if(sid===ADMIN_ID && pw===ADMIN_PW){
     msg.textContent='';
     hideGate();
     enterAdminPanel();
     return;
   }
-  setVoterInfo({sid,name});
-  msg.textContent='';
-  hideGate();
-  loadMyVote();
-  if(pendingAction==='vote' && currentDesign) doVote(true);
-  else if(pendingAction==='addDesign') submitPickedCombo();
-  pendingAction = null;
+
+  btn.disabled = true;
+  try{
+    const hash = await sha256Hex(pw);
+    const voterRef = db.doc('voters/'+sid);
+    const snap = await voterRef.get();
+    if(snap.exists){
+      const existing = snap.data() || {};
+      if(existing.passwordHash !== hash){
+        msg.textContent = '이미 등록된 학번이에요. 처음 만든 비밀번호를 입력해주세요.';
+        btn.disabled = false;
+        return;
+      }
+    } else {
+      await voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: Date.now() });
+    }
+    setVoterInfo({ sid, name, passwordHash: hash });
+    msg.textContent='';
+    hideGate();
+    loadMyVote();
+    if(pendingAction==='vote' && currentDesign) doVote(true);
+    else if(pendingAction==='addDesign') submitPickedCombo();
+    pendingAction = null;
+  }catch(e){
+    msg.textContent = '확인 중 오류가 발생했어요. 다시 시도해주세요.';
+  }
+  btn.disabled = false;
 };
 
 async function loadMyVote(){
@@ -255,7 +283,7 @@ async function doVote(fromModal){
       data[designId] = (data[designId]||0)+1;
       await countsRef.set(data);
       await db.doc('myVotes/'+VIEWER_UID).set({designId, votedAt:Date.now()});
-      await db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, votedAt:Date.now()});
+      await db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now()});
       COUNTS = data;
       MY_VOTE_ID = designId;
       renderGrid();
@@ -269,22 +297,17 @@ async function doVote(fromModal){
     return;
   }
 
-  // fallback for the rare case anonymous auth hasn't resolved yet: one-shot vote
+  // fallback for the rare case anonymous auth hasn't resolved yet: can't track/change
+  // "my vote" without a private uid, so just record this one cast
   try{
     const voterRef = db.doc('voters/'+voter.sid);
-    const vsnap = await voterRef.get();
-    if(vsnap.exists){
-      if(msgEl){ msgEl.className='msg err'; msgEl.textContent='이미 투표하셨습니다.'; }
-      else alert('이미 투표하셨습니다.');
-      return;
-    }
     const countsRef = db.doc('votes/counts');
     const csnap = await countsRef.get();
     const data = csnap.data() || {};
     const designId = currentDesign.id;
     data[designId] = (data[designId]||0)+1;
     await countsRef.set(data);
-    await voterRef.set({name:voter.name, studentId:voter.sid, votedAt:Date.now()});
+    await voterRef.set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now()});
     COUNTS[designId] = data[designId];
     renderGrid();
     if(msgEl){ msgEl.className='msg ok'; msgEl.textContent='투표 완료! 감사합니다 🎉'; }
