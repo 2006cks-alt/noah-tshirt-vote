@@ -23,7 +23,15 @@ service cloud.firestore {
     match /voters/{sid} {
       allow read: if true;
       allow create: if request.resource.data.passwordHash is string;
-      allow update: if request.resource.data.passwordHash == resource.data.passwordHash;
+      // normal self-service update: must already know the current password.
+      // OR the admin cleared passwordHash to null (reset) — once cleared,
+      // the row is open for a fresh registration, same as a brand-new sid.
+      // OR the write itself is the admin's reset, proven by a fixed proof
+      // string only the admin panel knows (same trust level as the admin
+      // PIN/password already used to reach that panel).
+      allow update: if request.resource.data.passwordHash == resource.data.passwordHash
+        || resource.data.get('passwordHash', null) == null
+        || request.resource.data.adminProof == "be63d9d2134687a92cb13b9c030bafadcda4fea86040e69265150d4863089b6a";
       allow delete: if false;
     }
 

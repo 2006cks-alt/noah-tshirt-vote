@@ -55,6 +55,7 @@ const userNs = {
 const ADMIN_PIN = "0925";
 const ADMIN_ID = "admin";
 const ADMIN_PW = "4474";
+const ADMIN_RESET_PROOF_INPUT = "admin-reset:"+ADMIN_PW;
 
 let DESIGNS = [];
 let COUNTS = {};
@@ -234,10 +235,14 @@ document.getElementById('gate-submit').onclick = async ()=>{
     const snap = await voterRef.get();
     if(snap.exists){
       const existing = snap.data() || {};
-      if(existing.passwordHash !== hash){
+      if(existing.passwordHash && existing.passwordHash !== hash){
         msg.textContent = '이미 등록된 학번이에요. 처음 만든 비밀번호를 입력해주세요.';
         btn.disabled = false;
         return;
+      }
+      if(!existing.passwordHash){
+        // admin reset this row (mistyped/forgotten password) — set a fresh one
+        await voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: existing.votedAt||Date.now() });
       }
     } else {
       await voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: Date.now() });
@@ -516,12 +521,39 @@ async function renderVoters(){
   try{
     const res = await db.collection('voters').get();
     const docs = res.docs || [];
-    tbody.innerHTML = '<tr><th>학번</th><th>이름</th><th>시각</th></tr>';
+    tbody.innerHTML = '<tr><th>학번</th><th>이름</th><th>시각</th><th></th></tr>';
     docs.forEach(docSnap=>{
       const v = docSnap.data() || {};
+      const sid = docSnap.id;
       const tr = document.createElement('tr');
       const t = v.votedAt ? new Date(v.votedAt).toLocaleString('ko-KR') : '-';
-      tr.innerHTML = `<td>${esc(v.studentId)}</td><td>${esc(v.name)}</td><td>${t}</td>`;
+      const td1=document.createElement('td'); td1.textContent=v.studentId||sid;
+      const td2=document.createElement('td'); td2.textContent=v.name||'';
+      const td3=document.createElement('td');
+      td3.textContent = t;
+      if(!v.passwordHash){
+        const badge=document.createElement('div'); badge.style.cssText='color:var(--danger);font-size:.72rem;';
+        badge.textContent='초기화됨 (재로그인 대기)';
+        td3.appendChild(badge);
+      }
+      const td4=document.createElement('td');
+      const resetBtn=document.createElement('button');
+      resetBtn.className='small-btn'; resetBtn.textContent='비번 초기화';
+      resetBtn.disabled = !v.passwordHash;
+      resetBtn.onclick = async ()=>{
+        if(!confirm(`${sid} (${v.name||''})의 비밀번호를 초기화할까요?\n본인이 다시 로그인하면서 새 비밀번호를 설정할 수 있게 돼요.`)) return;
+        resetBtn.disabled = true;
+        try{
+          const adminProof = await sha256Hex(ADMIN_RESET_PROOF_INPUT);
+          await db.doc('voters/'+sid).set({ name:v.name||'', studentId:sid, passwordHash:null, votedAt:v.votedAt||null, adminProof });
+          renderVoters();
+        }catch(e){
+          alert('초기화 실패했어요.');
+          resetBtn.disabled = false;
+        }
+      };
+      td4.appendChild(resetBtn);
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
       tbody.appendChild(tr);
     });
   }catch(e){
