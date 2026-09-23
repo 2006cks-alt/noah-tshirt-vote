@@ -3,16 +3,12 @@ import {
   getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot,
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 import {
-  getStorage, ref as storageRef, uploadBytes, getDownloadURL,
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js";
-import {
   getAuth, signInAnonymously, onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const fbApp = initializeApp(firebaseConfig);
 const fs = getFirestore(fbApp);
-const storage = getStorage(fbApp);
 const auth = getAuth(fbApp);
 
 /* ---------- thin adapter so the rest of this file reads like the original
@@ -45,15 +41,6 @@ let ADMIN_LOGGED_IN = false;
 const userNs = {
   async id(){ return auth.currentUser ? auth.currentUser.uid : null; },
   async canEdit(){ return ADMIN_LOGGED_IN; },
-};
-const assetsNs = {
-  async upload(file){
-    const path = 'uploads/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '_' + file.name;
-    const r = storageRef(storage, path);
-    await uploadBytes(r, file);
-    const url = await getDownloadURL(r);
-    return { url };
-  },
 };
 
 /* ============================================================
@@ -411,16 +398,9 @@ async function submitPickedCombo(){
   }
 }
 
-async function fileToUploadedUrl(file){
-  const res = await assetsNs.upload(file);
-  return res.url;
-}
-
-async function createDesignDoc(name, frontFile, backFile){
-  const frontUrl = await fileToUploadedUrl(frontFile);
-  const backUrl = backFile ? await fileToUploadedUrl(backFile) : null;
+async function createDesignDoc(name, frontUrl, backUrl){
   const id = 'design_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-  await db.doc('designs/'+id).set({name, frontUrl, backUrl, order: DESIGNS.length, createdAt:Date.now()});
+  await db.doc('designs/'+id).set({name, frontUrl, backUrl: backUrl||null, order: DESIGNS.length, createdAt:Date.now()});
 }
 
 function isAdminRoute(){ return location.hash.startsWith('#admin'); }
@@ -525,18 +505,18 @@ async function renderVoters(){
 document.getElementById('add-team-btn').onclick = async ()=>{
   const msg = document.getElementById('add-team-msg');
   const name = document.getElementById('new-team-name').value.trim();
-  const frontFile = document.getElementById('new-front-file').files[0];
-  const backFile = document.getElementById('new-back-file').files[0];
-  if(!name || !frontFile){ msg.className='msg err'; msg.textContent='이름과 앞면 이미지는 필수예요.'; return; }
-  msg.className='msg'; msg.textContent='업로드 중...';
+  const frontUrl = document.getElementById('new-front-url').value.trim();
+  const backUrl = document.getElementById('new-back-url').value.trim();
+  if(!name || !frontUrl){ msg.className='msg err'; msg.textContent='이름과 앞면 이미지 URL은 필수예요.'; return; }
+  msg.className='msg'; msg.textContent='추가하는 중...';
   try{
-    await createDesignDoc(name, frontFile, backFile);
+    await createDesignDoc(name, frontUrl, backUrl);
     msg.className='msg ok'; msg.textContent='추가되었습니다!';
     document.getElementById('new-team-name').value='';
-    document.getElementById('new-front-file').value='';
-    document.getElementById('new-back-file').value='';
+    document.getElementById('new-front-url').value='';
+    document.getElementById('new-back-url').value='';
   }catch(e){
-    msg.className='msg err'; msg.textContent='업로드 실패했어요.';
+    msg.className='msg err'; msg.textContent='추가 실패했어요.';
   }
 };
 

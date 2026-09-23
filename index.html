@@ -293,12 +293,13 @@
 
   <div class="admin-card">
     <h3>디자인 추가</h3>
+    <p class="sub" style="margin:0 0 4px;">이미지는 imgur.com 등에 먼저 올리고, 그 직접 링크(.jpg/.png로 끝나는 주소)를 붙여넣어주세요.</p>
     <label>이름</label>
     <input type="text" id="new-team-name" placeholder="예: 하나되는배">
-    <label>앞면 이미지</label>
-    <input type="file" id="new-front-file" accept="image/*">
-    <label>뒷면 이미지 (선택)</label>
-    <input type="file" id="new-back-file" accept="image/*">
+    <label>앞면 이미지 URL</label>
+    <input type="text" id="new-front-url" placeholder="https://i.imgur.com/xxxxx.jpg">
+    <label>뒷면 이미지 URL (선택)</label>
+    <input type="text" id="new-back-url" placeholder="https://i.imgur.com/xxxxx.jpg">
     <button class="primary-btn" id="add-team-btn">추가하기</button>
     <div class="msg" id="add-team-msg"></div>
   </div>
