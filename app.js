@@ -587,18 +587,32 @@ async function init(){
   // still picks up the result whenever (if ever) it resolves.
   signInAnonymously(auth).catch(()=>{});
 
+  let designsLoaded = false;
   db.doc('votes/counts').onSnapshot(snap=>{
     COUNTS = snap.data() || {};
     renderGrid();
   });
   db.collection('designs').onSnapshot(snap=>{
+    designsLoaded = true;
     DESIGNS = snap.docs.map(d=>{
       const v = d.data();
       return {id: d.id, name:v.name, frontUrl:v.frontUrl, backUrl:v.backUrl, order:v.order, coverSide:v.coverSide};
     });
     renderGrid();
     if(document.getElementById('admin-panel').classList.contains('open')) renderAdminDesigns();
-  });
+  }, ()=>{ /* onSnapshot error (e.g. blocked network) — fall through to the timeout message below */ });
+  // some networks (school wifi, certain browser extensions) block Firestore's
+  // realtime connection outright with no error callback firing at all — without
+  // this, those users are stuck looking at a permanently empty grid.
+  setTimeout(()=>{
+    if(!designsLoaded){
+      document.getElementById('grid').innerHTML =
+        '<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--sub);">'
+        + '불러오는 데 문제가 있어요. 인터넷 연결을 확인하고 새로고침 해주세요.<br>'
+        + '<button type="button" class="small-btn" style="margin-top:12px;" onclick="location.reload()">새로고침</button>'
+        + '</div>';
+    }
+  }, 9000);
 
   onAuthStateChanged(auth, (user)=>{
     if(user && getVoterInfo()) loadMyVote();
