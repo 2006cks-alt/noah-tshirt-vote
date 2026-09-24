@@ -272,6 +272,18 @@ async function loadMyVote(){
   renderGrid();
 }
 
+// a student's vote is tracked per browser-local anonymous identity (myVotes/{uid}),
+// which resets whenever local storage resets (new device, private window, a browser
+// clearing site data) — this catches the case where that identity is "fresh" (no
+// myVotes doc) but the SAME student id already voted once under a previous identity,
+// so it doesn't just look like a first vote and quietly inflate the totals.
+async function hasAlreadyVotedElsewhere(sid){
+  try{
+    const snap = await db.doc('voters/'+sid).get();
+    return snap.exists && !!(snap.data()||{}).hasVoted;
+  }catch(e){ return false; }
+}
+
 async function doVote(fromModal){
   const voter = getVoterInfo();
   const msgEl = fromModal ? document.getElementById('modal-msg') : null;
@@ -284,6 +296,11 @@ async function doVote(fromModal){
       return;
     }
     try{
+      if(!MY_VOTE_ID && await hasAlreadyVotedElsewhere(voter.sid)){
+        const dupMsg = '이미 다른 기기/브라우저에서 투표하셨어요. 투표를 바꾸려면 처음 투표했던 곳에서 다시 시도해주세요.';
+        if(msgEl){ msgEl.className='msg err'; msgEl.textContent=dupMsg; } else alert(dupMsg);
+        return;
+      }
       const countsRef = db.doc('votes/counts');
       const csnap = await countsRef.get();
       const data = csnap.data() || {};
@@ -293,7 +310,7 @@ async function doVote(fromModal){
       data[designId] = (data[designId]||0)+1;
       await countsRef.set(data);
       await db.doc('myVotes/'+VIEWER_UID).set({designId, votedAt:Date.now()});
-      await db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now()});
+      await db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true});
       COUNTS = data;
       MY_VOTE_ID = designId;
       renderGrid();
@@ -311,13 +328,18 @@ async function doVote(fromModal){
   // "my vote" without a private uid, so just record this one cast
   try{
     const voterRef = db.doc('voters/'+voter.sid);
+    if(await hasAlreadyVotedElsewhere(voter.sid)){
+      const dupMsg = '이미 다른 기기/브라우저에서 투표하셨어요. 투표를 바꾸려면 처음 투표했던 곳에서 다시 시도해주세요.';
+      if(msgEl){ msgEl.className='msg err'; msgEl.textContent=dupMsg; } else alert(dupMsg);
+      return;
+    }
     const countsRef = db.doc('votes/counts');
     const csnap = await countsRef.get();
     const data = csnap.data() || {};
     const designId = currentDesign.id;
     data[designId] = (data[designId]||0)+1;
     await countsRef.set(data);
-    await voterRef.set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now()});
+    await voterRef.set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true});
     COUNTS[designId] = data[designId];
     renderGrid();
     if(msgEl){ msgEl.className='msg ok'; msgEl.textContent='투표 완료! 감사합니다 🎉'; }
