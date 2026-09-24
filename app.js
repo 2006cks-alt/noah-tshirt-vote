@@ -581,7 +581,11 @@ document.getElementById('add-team-btn').onclick = async ()=>{
 };
 
 async function init(){
-  try{ await signInAnonymously(auth); }catch(e){ /* handled below via onAuthStateChanged */ }
+  // don't block the whole page on this — if local auth storage is stuck/corrupted
+  // (seen after a browser clears site data mid-session), signInAnonymously can hang
+  // forever, otherwise leaving the page permanently blank. onAuthStateChanged below
+  // still picks up the result whenever (if ever) it resolves.
+  signInAnonymously(auth).catch(()=>{});
 
   db.doc('votes/counts').onSnapshot(snap=>{
     COUNTS = snap.data() || {};
