@@ -213,6 +213,18 @@ async function sha256Hex(text){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+// some networks/browsers leave Firestore's realtime connection stuck with no
+// error ever firing (seen in practice: a login button staying stuck disabled
+// forever). Race every Firestore call against a timeout so the UI can always
+// recover with a clear message instead of hanging indefinitely.
+function withTimeout(promise, ms=8000){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=>setTimeout(()=>reject(new Error('timeout')), ms)),
+  ]);
+}
+const CONN_ERR_MSG = '연결이 원활하지 않아요. 인터넷 상태를 확인하고 다시 시도해주세요.';
+
 document.getElementById('gate-submit').onclick = async ()=>{
   const btn = document.getElementById('gate-submit');
   const sid = document.getElementById('gate-sid').value.trim();
@@ -232,7 +244,7 @@ document.getElementById('gate-submit').onclick = async ()=>{
   try{
     const hash = await sha256Hex(pw);
     const voterRef = db.doc('voters/'+sid);
-    const snap = await voterRef.get();
+    const snap = await withTimeout(voterRef.get());
     if(snap.exists){
       const existing = snap.data() || {};
       if(existing.passwordHash && existing.passwordHash !== hash){
@@ -242,10 +254,10 @@ document.getElementById('gate-submit').onclick = async ()=>{
       }
       if(!existing.passwordHash){
         // admin reset this row (mistyped/forgotten password) — set a fresh one
-        await voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: existing.votedAt||Date.now() });
+        await withTimeout(voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: existing.votedAt||Date.now() }));
       }
     } else {
-      await voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: Date.now() });
+      await withTimeout(voterRef.set({ name, studentId: sid, passwordHash: hash, votedAt: Date.now() }));
     }
     setVoterInfo({ sid, name, passwordHash: hash });
     msg.textContent='';
@@ -255,7 +267,7 @@ document.getElementById('gate-submit').onclick = async ()=>{
     else if(pendingAction==='addDesign') submitPickedCombo();
     pendingAction = null;
   }catch(e){
-    msg.textContent = '확인 중 오류가 발생했어요. 다시 시도해주세요.';
+    msg.textContent = CONN_ERR_MSG;
   }
   btn.disabled = false;
 };
@@ -279,7 +291,7 @@ async function loadMyVote(){
 // so it doesn't just look like a first vote and quietly inflate the totals.
 async function hasAlreadyVotedElsewhere(sid){
   try{
-    const snap = await db.doc('voters/'+sid).get();
+    const snap = await withTimeout(db.doc('voters/'+sid).get(), 6000);
     return snap.exists && !!(snap.data()||{}).hasVoted;
   }catch(e){ return false; }
 }
@@ -302,15 +314,15 @@ async function doVote(fromModal){
         return;
       }
       const countsRef = db.doc('votes/counts');
-      const csnap = await countsRef.get();
+      const csnap = await withTimeout(countsRef.get());
       const data = csnap.data() || {};
       const prevId = MY_VOTE_ID;
       const designId = currentDesign.id;
       if(prevId && data[prevId]) data[prevId] = Math.max(0, data[prevId]-1);
       data[designId] = (data[designId]||0)+1;
-      await countsRef.set(data);
-      await db.doc('myVotes/'+VIEWER_UID).set({designId, votedAt:Date.now()});
-      await db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true});
+      await withTimeout(countsRef.set(data));
+      await withTimeout(db.doc('myVotes/'+VIEWER_UID).set({designId, votedAt:Date.now()}));
+      await withTimeout(db.doc('voters/'+voter.sid).set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true}));
       COUNTS = data;
       MY_VOTE_ID = designId;
       renderGrid();
@@ -319,7 +331,7 @@ async function doVote(fromModal){
       if(msgEl){ msgEl.className='msg ok'; msgEl.textContent=okMsg; }
       else alert(okMsg);
     }catch(e){
-      if(msgEl){ msgEl.className='msg err'; msgEl.textContent='투표 중 오류가 발생했어요. 다시 시도해주세요.'; }
+      if(msgEl){ msgEl.className='msg err'; msgEl.textContent=CONN_ERR_MSG; }
     }
     return;
   }
@@ -334,18 +346,19 @@ async function doVote(fromModal){
       return;
     }
     const countsRef = db.doc('votes/counts');
-    const csnap = await countsRef.get();
+    const csnap = await withTimeout(countsRef.get());
     const data = csnap.data() || {};
     const designId = currentDesign.id;
     data[designId] = (data[designId]||0)+1;
-    await countsRef.set(data);
-    await voterRef.set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true});
+    await withTimeout(countsRef.set(data));
+    await withTimeout(voterRef.set({name:voter.name, studentId:voter.sid, passwordHash:voter.passwordHash, votedAt:Date.now(), hasVoted:true}));
     COUNTS[designId] = data[designId];
     renderGrid();
     if(msgEl){ msgEl.className='msg ok'; msgEl.textContent='투표 완료! 감사합니다 🎉'; }
     else alert('투표 완료! 감사합니다 🎉');
   }catch(e){
-    if(msgEl){ msgEl.className='msg err'; msgEl.textContent='투표 중 오류가 발생했어요. 다시 시도해주세요.'; }
+    if(msgEl){ msgEl.className='msg err'; msgEl.textContent=CONN_ERR_MSG; }
+    else alert(CONN_ERR_MSG);
   }
 }
 
