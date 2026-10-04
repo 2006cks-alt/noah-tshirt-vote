@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {
-  getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot,
+  initializeFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot,
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged,
@@ -8,7 +8,11 @@ import {
 import { firebaseConfig } from "./firebase-config.js";
 
 const fbApp = initializeApp(firebaseConfig);
-const fs = getFirestore(fbApp);
+// Firestore's default streaming transport (WebChannel) gets silently blocked on some
+// networks/security software, which leaves every get()/set() hanging forever while
+// ordinary page loads work fine. Long-polling is plain request/response HTTPS and
+// goes through those setups.
+const fs = initializeFirestore(fbApp, { experimentalForceLongPolling: true });
 const auth = getAuth(fbApp);
 
 /* ---------- thin adapter so the rest of this file reads like the original
@@ -223,7 +227,7 @@ function withTimeout(promise, ms=8000){
     new Promise((_, reject)=>setTimeout(()=>reject(new Error('timeout')), ms)),
   ]);
 }
-const CONN_ERR_MSG = '연결이 원활하지 않아요. 인터넷 상태를 확인하고 다시 시도해주세요.';
+const CONN_ERR_MSG = '서버 응답이 없어요. 잠시 후 다시 시도하거나 새로고침 해주세요.';
 
 document.getElementById('gate-submit').onclick = async ()=>{
   const btn = document.getElementById('gate-submit');
@@ -643,7 +647,7 @@ async function init(){
     if(!designsLoaded){
       document.getElementById('grid').innerHTML =
         '<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--sub);">'
-        + '불러오는 데 문제가 있어요. 인터넷 연결을 확인하고 새로고침 해주세요.<br>'
+        + '불러오는 데 문제가 있어요. 새로고침 해주세요.<br>'
         + '<button type="button" class="small-btn" style="margin-top:12px;" onclick="location.reload()">새로고침</button>'
         + '</div>';
     }
